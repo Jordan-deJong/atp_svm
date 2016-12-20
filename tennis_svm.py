@@ -429,13 +429,14 @@ def train_winner(df):
     return(clf, accuracy)
 
 def predict_winner(norm, clf, accuracy):
-    p_df = pd.read_csv('tennis_data_prediction.csv', encoding = 'iso-8859-1')
+    p_df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/tennis_data_prediction.csv', encoding = 'iso-8859-1')
     norm_p_df = apply_normalization(p_df, norm, False)
     matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner'], 1))
     opp1s = np.array(norm_p_df['opp1'])
     opp2s = np.array(norm_p_df['opp2'])
     # matches = preprocessing.scale(matches)
 
+    winnerslist = []
     print("\n" + accuracy + " Accurate Winner Predictions:")
     i = 0
     for row in matches:
@@ -443,9 +444,11 @@ def predict_winner(norm, clf, accuracy):
         prediction = clf.predict(row)
         confidence = clf.decision_function(row)
         probability = clf.predict_proba(row)
+        winnerslist.append([opp1s[i], opp2s[i], eval('opp' + str(prediction[0]) +'s[i]'), int(abs(probability[0][prediction[0]-1])*100), int(abs(confidence[0])*100)])
         print(opp1s[i] + " vs " + opp2s[i] + " " + str(norm['opp'][opp1s[i]][opp2s[i]]) + " - " + str(prediction[0]) + " - " + str(int(abs(probability[0][prediction[0]-1])*100))
               + '% probability - ' + str(int(abs(confidence[0])*100)) + ' Distance')
         i += 1
+    print(winnerslist)
 
 def train_set1_winner(df):
     X = np.array(df.drop(['winner', 'opp1', 'opp2', 'first_set_winner'], 1))
@@ -463,7 +466,7 @@ def train_set1_winner(df):
     return(clf, accuracy)
 
 def predict_set1_winner(norm, clf, accuracy):
-    p_df = pd.read_csv('tennis_data_prediction.csv', encoding = 'iso-8859-1')
+    p_df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/tennis_data_prediction.csv', encoding = 'iso-8859-1')
     norm_p_df = apply_normalization(p_df, norm, False)
     matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner'], 1))
     opp1s = np.array(norm_p_df['opp1'])
@@ -483,15 +486,15 @@ def predict_set1_winner(norm, clf, accuracy):
         i += 1
 
 rolling_monthly_period = 12
-df = pd.read_csv('tennis_data.csv', encoding = 'iso-8859-1')
+df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/tennis_data.csv', encoding = 'iso-8859-1')
 norm = normalization(df)
 
-norm_df = apply_normalization(df, norm, True)
-norm_df.copy().to_csv('normalized_df.csv', sep=',', index=False)
-# norm_df = pd.read_csv('normalized_df.csv', encoding='utf-8')
+# norm_df = apply_normalization(df, norm, True)
+# norm_df.copy().to_csv('c:/Users/jdejong/dropbox/python/tennis/normalized_df.csv', sep=',', index=False)
+norm_df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/normalized_df.csv', encoding='utf-8')
 
 winner_clf, accuracy = train_winner(norm_df)
 predict_winner(norm, winner_clf, accuracy)
 
 set1_winner_clf, accuracy = train_set1_winner(norm_df)
-# predict_set1_winner(norm, set1_winner_clf, accuracy)
+predict_set1_winner(norm, set1_winner_clf, accuracy)
