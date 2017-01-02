@@ -36,7 +36,7 @@ def normalization_age_weight_height(df):
             i += 1
     for column in distribution_columns:
         normalization[column] = [np.mean(distribution_lists[column.replace('opp1_', '').replace('opp2_', '')]), np.std(distribution_lists[column.replace('opp1_', '').replace('opp2_', '')])]
-    print("Age Weight Hieght Normalized")
+    print("Age Weight Hieght Normalized.")
     return(normalization)
 
 def get_player_dict(df):
@@ -64,7 +64,7 @@ def normalization_overall_winloss(df):
             players_dict[opp1][2] += 1
             players_dict[opp2][2] += 1
     normalization = {'overall': players_dict}
-    print("Overall WinLoss Normalized")
+    print("Overall WinLoss Normalized.")
     return(normalization)
 
 def normalization_title_location(df):
@@ -84,7 +84,7 @@ def normalization_title_location(df):
                 players_dict[opp][row][2] += 1
             i += 1
         normalization[column] = players_dict
-    print("Title & Location Normalized")
+    print("Title & Location Normalized.")
     return(normalization)
 
 def normalization_opps(df):
@@ -105,7 +105,25 @@ def normalization_opps(df):
         players_dict[opp1][opp2][2] += 1
         players_dict[opp2][opp1][2] += 1
     normalization = {'opp': players_dict}
-    print("Opps Normalized")
+    print("Opps Normalized.")
+    return(normalization)
+
+def normalization_opp_set_scores(df):
+    players_dict = get_player_dict(df)
+    for i in range(len(df.index)):
+        opp1 = df['opp1'][i]
+        opp2 = df['opp2'][i]
+        if opp2 not in players_dict[opp1]:
+            players_dict[opp1][opp2] = [0, 0]  # opp1 set score total, opp2 set score total
+        if opp1 not in players_dict[opp2]:
+            players_dict[opp2][opp1] = [0, 0]  # opp2 set score total, opp1 set score total
+        for set_num in ['1', '2', '3', '4', '5']:
+            players_dict[opp1][opp2][0] += int(df['opp1_set' + set_num][i])
+            players_dict[opp1][opp2][1] += int(df['opp2_set' + set_num][i])
+            players_dict[opp2][opp1][0] += int(df['opp2_set' + set_num][i])
+            players_dict[opp2][opp1][1] += int(df['opp1_set' + set_num][i])
+    normalization = {'opp_set_scores': players_dict}
+    print('Opps Set Scores Normalized.')
     return(normalization)
 
 def normalization_surface_and_surface_type(df):
@@ -130,7 +148,7 @@ def normalization_surface_and_surface_type(df):
                 players_dict[opp1][surface][2] += 1
                 players_dict[opp2][surface][2] += 1
         normalization[surfaces] = players_dict
-    print("surfaces Normalized")
+    print("Surfaces Normalized.")
     return(normalization)
 
 def normalization_hand(df):
@@ -152,7 +170,7 @@ def normalization_hand(df):
             players_dict[opp1][opp2_hand][2] += 1
             players_dict[opp2][opp1_hand][2] += 1
     normalization = {'hand': players_dict}
-    print("Hands Normalized")
+    print("Hands Normalized.")
     return(normalization)
 
 def normalization_sets(df):
@@ -173,7 +191,7 @@ def normalization_sets(df):
             players_dict[opp1]['set'+set_num][2] += 1
             players_dict[opp2]['set'+set_num][2] += 1
     normalization = {'set': players_dict}
-    print("Sets Normalized")
+    print("Sets Normalized.")
     return(normalization)
 
 def normalization_set_avg(df):
@@ -191,9 +209,9 @@ def normalization_set_avg(df):
     return(normalization)
 
 def normalization(df):
-    normalizations = {**normalization_overall_winloss(df), **normalization_age_weight_height(df), **normalization_title_location(df), **normalization_opps(df),
+    normalizations = {**normalization_overall_winloss(df), **normalization_age_weight_height(df), **normalization_title_location(df), **normalization_opps(df), **normalization_opp_set_scores(df),
                       **normalization_surface_and_surface_type(df), **normalization_hand(df), **normalization_sets(df), **normalization_set_avg(df)}
-    print("Normalization Complete")
+    print("Normalization Complete.\n\n ----- APPLYING TO DATA -----\n")
     return(normalizations)
 
 def apply_winloss_columns(df, print_status):
@@ -206,18 +224,15 @@ def apply_winloss_columns(df, print_status):
         for row in df[column]:
             df.loc[i, column] = round(row*10)
             i += 1
-    if print_status: print("Win Loss Applied")
+    if print_status: print("Win Loss Applied.")
 
 def apply_overall(df, normalization, print_status):
-    import collections
-    names = []
     for i in range(len(df.index)):
         try:
             opp1 = df['opp1'][i]
             opp1_norm = normalization['overall'][opp1]
             opp1_rate = round((opp1_norm[0]/opp1_norm[2])*10)
             if opp1_rate == 0: ValueError("Can't be zero")
-            if opp1_rate != df['opp1_overall_ytd'][i]: names.append(opp1)
             opp2 = df['opp2'][i]
             opp2_norm = normalization['overall'][opp2]
             opp2_rate = round((opp2_norm[0]/opp2_norm[2])*10)
@@ -225,10 +240,9 @@ def apply_overall(df, normalization, print_status):
         except:
             opp1_rate = df['opp1_overall_career'][i]
             opp2_rate = df['opp2_overall_career'][i]
-        df['opp1_overall_wl_rolling'] = opp1_rate
-        df['opp2_overall_wl_rolling'] = opp2_rate
-    print(len(collections.Counter(names)))
-    if print_status: print("Overall Applied")
+        df.loc[i, 'opp1_overall_wl_rolling'] = opp1_rate
+        df.loc[i, 'opp2_overall_wl_rolling'] = opp2_rate
+    if print_status: print("Overall Applied.")
 
 def apply_surface(df, normalization, print_status):
     for column in ['surface', 'surfaceType']:
@@ -250,7 +264,7 @@ def apply_surface(df, normalization, print_status):
             df.loc[i, 'opp1_' + column + '_winloss'] =  opp1_rate
             df.loc[i, 'opp2_' + column + '_winloss'] =  opp2_rate
             i += 1
-    if print_status: print("Surface Applied")
+    if print_status: print("Surface Applied.")
 
 def apply_dollars(df, print_status):
     amounts = []
@@ -271,7 +285,7 @@ def apply_dollars(df, print_status):
     for row in df['dollar']:
         df.loc[i, 'dollar'] = math.ceil(row/max(amounts)*10)
         i += 1
-    if print_status: print("Dollars Applied")
+    if print_status: print("Dollars Applied.")
 
 def apply_rankings(df, print_status):
     ranking_weight = {(1, 5): 10, (6, 20): 9, (21, 50): 8, (51, 100): 7, (101, 150): 6, (151, 200): 5, (201, 300): 4, (301, 400): 3, (401, 500): 2, (501, 10000): 1}
@@ -284,7 +298,7 @@ def apply_rankings(df, print_status):
                 else:
                     df.loc[i, column] = 1
             i += 1
-    if print_status: print("Rankings Applied")
+    if print_status: print("Rankings Applied.")
 
 def apply_percent_columns(df, print_status):
     percent_columns = ['opp1_first_serve', 'opp1_first_serve_points_won', 'opp1_second_serve_points_won', 'opp1_break_points_saved', 'opp1_service_points_won', 'opp1_total_service_points_won', 'opp1_first_serve_return_points_won', 'opp1_second_serve_return_points_won', 'opp1_break_points_converted', 'opp1_return_games_won', 'opp1_return_points_won', 'opp1_total_points_won',
@@ -294,7 +308,7 @@ def apply_percent_columns(df, print_status):
         for row in df[column]:
             df.loc[i, column] = round(int(row.replace('%',''))/10)
             i += 1
-    if print_status: print("Percentage Columns Applied")
+    if print_status: print("Percentage Columns Applied.")
 
 def apply_title_location(df, normalization, print_status):
     for column in ['title', 'location']:
@@ -308,17 +322,42 @@ def apply_title_location(df, normalization, print_status):
                 df.loc[i, opp_ref + '_' + column + '_win_rate'] = int(opp_win_rate)
     if print_status: print("Title & Location Applied")
 
+def apply_opp_set_scores(df, normalization, print_status):
+    for i in range(len(df.index)):
+        try:
+            opp1 = df['opp1'][i]
+            opp2 = df['opp2'][i]
+            opp1_norm = normalization['opp_set_scores'][opp1][opp2]
+            opp2_norm = normalization['opp_set_scores'][opp2][opp1]
+            total_sets_played = sum(opp1_norm)
+            opp1_rate = round((opp1_norm[0]/total_sets_played)*10)
+            opp2_rate = round((opp2_norm[0]/total_sets_played)*10)
+        except:
+            opp1_rate = 0
+            opp2_rate = 0
+        df.loc[i, 'opp1_set_win_ratio'] = opp1_rate
+        df.loc[i, 'opp2_set_win_ratio'] = opp2_rate
+    if print_status: print("Opp Set Score Ratio Applied.")
+
 def apply_opps(df, normalization, print_status):
     for i in range(len(df.index)):
-        opp1 = df['opp1'][i]
-        opp2 = df['opp2'][i]
-        opp1_stats = normalization['opp'][opp1][opp2]
-        opp2_stats = normalization['opp'][opp2][opp1]
-        opp1_win_rate = ((opp1_stats[0]/opp1_stats[2])*10)
-        opp2_win_rate = ((opp2_stats[0]/opp2_stats[2])*10)
+        try:
+            opp1 = df['opp1'][i]
+            opp2 = df['opp2'][i]
+            opp1_stats = normalization['opp'][opp1][opp2]
+            opp2_stats = normalization['opp'][opp2][opp1]
+            if opp1_stats[2] <= 3:
+                opp1_win_rate = df['opp1_set_win_ratio'][i]
+                opp2_win_rate = df['opp2_set_win_ratio'][i]
+            else:
+                opp1_win_rate = ((opp1_stats[0]/opp1_stats[2])*10)
+                opp2_win_rate = ((opp2_stats[0]/opp2_stats[2])*10)
+        except:
+            opp1_win_rate = 0
+            opp2_win_rate = 0
         df.loc[i, 'opp1_vs_opp2_win_rate'] = int(opp1_win_rate)
         df.loc[i, 'opp2_vs_opp1_win_rate'] = int(opp2_win_rate)
-    if print_status: print("Opps Win Rate Applied")
+    if print_status: print("Opps Win Rate Applied.")
 
 def apply_sets(df, normalization, print_status):
     for i in range(len(df.index)):
@@ -328,7 +367,7 @@ def apply_sets(df, normalization, print_status):
                 opp_stats = normalization['set'][opp]['set'+set_num]
                 opp_set_win_rate = ((opp_stats[0]/opp_stats[2])*10)
                 df.loc[i, opp_ref + '_set' + set_num + '_win_rate'] = int(opp_set_win_rate)
-    if print_status: print("Sets Win Rate Applied")
+    if print_status: print("Sets Win Rate Applied.")
 
 def apply_first_set_winner(df, print_status):
     for i in range(len(df.index)):
@@ -336,7 +375,7 @@ def apply_first_set_winner(df, print_status):
             df.loc[i, 'first_set_winner'] = 1
         else:
             df.loc[i, 'first_set_winner'] = 2
-    if print_status: print("First Set Winner Applied")
+    if print_status: print("First Set Winner Applied.")
 
 def apply_age_weight_height(df, normalization, print_status):
     for column in ['opp1_age', 'opp1_weight', 'opp1_height', 'opp2_age', 'opp2_weight', 'opp2_height']:
@@ -352,7 +391,7 @@ def apply_age_weight_height(df, normalization, print_status):
                 column_norm = 10
             df.loc[i, column] = abs(column_norm-11)
             i += 1
-    if print_status: print("Age Weight Height Applied")
+    if print_status: print("Age Weight Height Applied.")
 
 def apply_year_pro(df, print_status):
     for column in ['opp1_year_pro', 'opp2_year_pro']:
@@ -367,7 +406,7 @@ def apply_year_pro(df, print_status):
                 years_pro = 10
             df.loc[i, column] = math.ceil(years_pro)
             i += 1
-    if print_status: print("Year Pro Applied")
+    if print_status: print("Year Pro Applied.")
 
 def apply_hand(df, normalization, print_status):
     hand_ref = {'Right-Handed': 'right_handers', 'Left-Handed': 'left_handers'}
@@ -379,11 +418,14 @@ def apply_hand(df, normalization, print_status):
             opp2_norm = normalization['hand'][opp2][df['opp1_hand'][i].split(',')[0]]
             opp1_rate = round((opp1_norm[0]/opp1_norm[2])*10)
             opp2_rate = round((opp2_norm[0]/opp2_norm[2])*10)
-        # opp1_rate = df["opp1_vs_" + hand_ref[df['opp2_hand'][i].split(',')[0]] + "_ytd"][i]
-        # opp2_rate = df["opp2_vs_" + hand_ref[df['opp1_hand'][i].split(',')[0]] + "_ytd"][i]
         except:
-            opp1_rate = df["opp1_overall_career"][i]
-            opp2_rate = df["opp2_overall_career"][i]
+            try:
+                opp1_rate = df["opp1_vs_" + hand_ref[df['opp2_hand'][i].split(',')[0]] + "_career"][i]
+                opp2_rate = df["opp2_vs_" + hand_ref[df['opp1_hand'][i].split(',')[0]] + "_career"][i]
+                if opp1_rate == 0 or opp2_rate == 0: ValueError("Can't be zero")
+            except:
+                opp1_rate = df["opp1_overall_career"][i]
+                opp1_rate = df["opp1_overall_career"][i]
         df.loc[i, "opp1_vs_opp2_hand"] = opp1_rate
         df.loc[i, "opp2_vs_opp1_hand"] = opp2_rate
     if print_status: print("Hand Win Rate Applied")
@@ -396,6 +438,7 @@ def apply_normalization(df, normalization, print_status):
     apply_rankings(df, print_status)
     apply_percent_columns(df, print_status)
     # apply_title_location(df, normalization, print_status)
+    apply_opp_set_scores(df, normalization, print_status)
     apply_opps(df, normalization, print_status)
     apply_sets(df, normalization, print_status)
     apply_first_set_winner(df, print_status)
@@ -404,14 +447,16 @@ def apply_normalization(df, normalization, print_status):
     apply_hand(df, normalization, print_status)
     df.drop(['date', 'title', 'location', 'surface', 'surfaceType', 'opp1_url', 'opp2_url',
             'opp1_set1', 'opp2_set1', 'opp1_set2', 'opp2_set2', 'opp1_set3', 'opp2_set3', 'opp1_set4', 'opp2_set4', 'opp1_set5', 'opp2_set5',
+            'opp1_overall_ytd', 'opp1_grandslams_ytd', 'opp1_atpworld_ytd', 'opp1_tiebreaks_ytd', 'opp1_vs_top_10_ytd', 'opp1_finals_ytd', 'opp1_deciding_set_ytd', 'opp1_fifth_set_record_ytd', 'opp1_after_winning_first_set_ytd', 'opp1_after_losing_first_set_ytd',
             'opp1_clay_ytd', 'opp1_grass_ytd', 'opp1_hard_ytd', 'opp1_carpet_ytd', 'opp1_indoor_ytd', 'opp1_outdoor_ytd',
             'opp1_clay_career', 'opp1_grass_career', 'opp1_hard_career', 'opp1_carpet_career', 'opp1_indoor_career', 'opp1_outdoor_career',
             'opp1_hand', 'opp1_vs_right_handers_ytd', 'opp1_vs_left_handers_ytd', 'opp1_vs_right_handers_career', 'opp1_vs_left_handers_career',
+            'opp2_overall_ytd', 'opp2_grandslams_ytd', 'opp2_atpworld_ytd', 'opp2_tiebreaks_ytd', 'opp2_vs_top_10_ytd', 'opp2_finals_ytd', 'opp2_deciding_set_ytd', 'opp2_fifth_set_record_ytd', 'opp2_after_winning_first_set_ytd', 'opp2_after_losing_first_set_ytd',
             'opp2_clay_ytd', 'opp2_grass_ytd', 'opp2_hard_ytd', 'opp2_carpet_ytd', 'opp2_indoor_ytd', 'opp2_outdoor_ytd',
             'opp2_clay_career', 'opp2_grass_career', 'opp2_hard_career', 'opp2_carpet_career', 'opp2_indoor_career', 'opp2_outdoor_career',
             'opp2_hand', 'opp2_vs_right_handers_ytd', 'opp2_vs_left_handers_ytd', 'opp2_vs_right_handers_career', 'opp2_vs_left_handers_career'
             ], 1, inplace=True)
-    if print_status: print("Apply normalization Complete")
+    if print_status: print("Apply normalization Complete.")
     return(df)
 
 def train_winner(df):
@@ -429,7 +474,7 @@ def train_winner(df):
     return(clf, accuracy)
 
 def predict_winner(norm, clf, accuracy):
-    p_df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/tennis_data_prediction.csv', encoding = 'iso-8859-1')
+    p_df = pd.read_csv('tennis_data_prediction.csv', encoding = 'iso-8859-1')
     norm_p_df = apply_normalization(p_df, norm, False)
     matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner'], 1))
     opp1s = np.array(norm_p_df['opp1'])
@@ -445,10 +490,15 @@ def predict_winner(norm, clf, accuracy):
         confidence = clf.decision_function(row)
         probability = clf.predict_proba(row)
         winnerslist.append([opp1s[i], opp2s[i], eval('opp' + str(prediction[0]) +'s[i]'), int(abs(probability[0][prediction[0]-1])*100), int(abs(confidence[0])*100)])
-        print(opp1s[i] + " vs " + opp2s[i] + " " + str(norm['opp'][opp1s[i]][opp2s[i]]) + " - " + str(prediction[0]) + " - " + str(int(abs(probability[0][prediction[0]-1])*100))
-              + '% probability - ' + str(int(abs(confidence[0])*100)) + ' Distance')
+        winner_string = opp1s[i] + " vs " + opp2s[i] + " "
+        try:
+            winner_string += (str(norm['opp'][opp1s[i]][opp2s[i]]) + ' - ' + str(norm['opp_set_scores'][opp1s[i]][opp2s[i]]))
+        except:
+            winner_string += "[0, 0, 0]"
+        winner_string += (" - " + str(prediction[0]) + " - " + str(int(abs(probability[0][prediction[0]-1])*100)) + '% Prob - ' + str(int(abs(confidence[0])*100)) + ' Dist')
+        print(winner_string)
         i += 1
-    print(winnerslist)
+    # print(winnerslist)
 
 def train_set1_winner(df):
     X = np.array(df.drop(['winner', 'opp1', 'opp2', 'first_set_winner'], 1))
@@ -462,11 +512,10 @@ def train_set1_winner(df):
     clf.fit(X_train, y_train)
     accuracy = clf.score(X_test, y_test)
     accuracy = str(round(accuracy*100)) + '%'
-    print(accuracy)
     return(clf, accuracy)
 
 def predict_set1_winner(norm, clf, accuracy):
-    p_df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/tennis_data_prediction.csv', encoding = 'iso-8859-1')
+    p_df = pd.read_csv('tennis_data_prediction.csv', encoding = 'iso-8859-1')
     norm_p_df = apply_normalization(p_df, norm, False)
     matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner'], 1))
     opp1s = np.array(norm_p_df['opp1'])
@@ -486,15 +535,18 @@ def predict_set1_winner(norm, clf, accuracy):
         i += 1
 
 rolling_monthly_period = 12
-df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/tennis_data.csv', encoding = 'iso-8859-1')
+df = pd.read_csv('tennis_data.csv', encoding = 'iso-8859-1')
 norm = normalization(df)
 
-# norm_df = apply_normalization(df, norm, True)
-# norm_df.copy().to_csv('c:/Users/jdejong/dropbox/python/tennis/normalized_df.csv', sep=',', index=False)
-norm_df = pd.read_csv('c:/Users/jdejong/dropbox/python/tennis/normalized_df.csv', encoding='utf-8')
+#norm_df = apply_normalization(df, norm, True)
+#norm_df.copy().to_csv('normalized_df.csv', sep=',', index=False)
+norm_df = pd.read_csv('normalized_df.csv', encoding='utf-8')
 
 winner_clf, accuracy = train_winner(norm_df)
 predict_winner(norm, winner_clf, accuracy)
 
 set1_winner_clf, accuracy = train_set1_winner(norm_df)
 predict_set1_winner(norm, set1_winner_clf, accuracy)
+
+# PERFORMACE INCREASE
+# Don't Need to find both opponinent stats eveytime can just calculate it off the first oppenent.

@@ -297,6 +297,7 @@ def get_prediction_daily_schedule():
     parser = etree.HTMLParser()
     tree = etree.parse(io.BytesIO(html), parser)
     daily_schedule_link = strip_html(tree.xpath("//div[@class='module-header']/div[1]/div[4]/span/a/@href")[0])
+    # daily_schedule_link = '/en/scores/current/brisbane/339/daily-schedule'
     matches = get_prediction_matches(daily_schedule_link)
     return(matches)
 
@@ -319,7 +320,7 @@ def prediction_to_csv(prediction_matches):
                 writer.writerow(row + ['', '', '', '', '', '', '', '', '', '', ''] + player_data_info)
 
 home_url = 'http://www.atpworldtour.com'
-years = [2015, 2016]
+years = [2015, 2016, 2017]
 headings = ['date', 'title', 'location', 'surface', 'surfaceType', 'dollar', 'opp1', 'opp1_url', 'opp2', 'opp2_url', 'winner', 'opp1_set1', 'opp2_set1', 'opp1_set2', 'opp2_set2', 'opp1_set3', 'opp2_set3', 'opp1_set4', 'opp2_set4', 'opp1_set5', 'opp2_set5',
                  'opp1_rank', 'opp1_age', 'opp1_year_pro', 'opp1_weight', 'opp1_height', 'opp1_hand',
                  'opp1_first_serve', 'opp1_first_serve_points_won', 'opp1_second_serve_points_won', 'opp1_break_points_saved', 'opp1_service_points_won', 'opp1_total_service_points_won', 'opp1_first_serve_return_points_won', 'opp1_second_serve_return_points_won', 'opp1_break_points_converted', 'opp1_return_games_won', 'opp1_return_points_won', 'opp1_total_points_won',
