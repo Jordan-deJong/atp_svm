@@ -371,6 +371,7 @@ def apply_rankings(df, print_status):
             for k, v in ranking_weight.items():
                 if row >= k[0] and row <= k[1]:
                     df.loc[i, column] = v
+                    break
                 else:
                     df.loc[i, column] = 1
             i += 1
@@ -406,11 +407,12 @@ def apply_opp_set_scores(df, normalization, print_status):
             opp1_norm = normalization['opp_set_scores'][opp1][opp2]
             opp2_norm = normalization['opp_set_scores'][opp2][opp1]
             total_sets_played = sum(opp1_norm)
+            if total_sets_played == 0: ValueError('Never Played Before.')
             opp1_rate = round((opp1_norm[0]/total_sets_played)*10)
             opp2_rate = round((opp2_norm[0]/total_sets_played)*10)
         except:
-            opp1_rate = 0
-            opp2_rate = 0
+            opp1_rate = df['opp1_overall_wl_rolling'][i]
+            opp2_rate = df['opp2_overall_wl_rolling'][i]
         df.loc[i, 'opp1_set_win_ratio'] = opp1_rate
         df.loc[i, 'opp2_set_win_ratio'] = opp2_rate
     if print_status: print("Opp Set Score Ratio Applied.")
@@ -429,8 +431,8 @@ def apply_opps(df, normalization, print_status):
                 opp1_win_rate = ((opp1_stats[0]/opp1_stats[2])*10)
                 opp2_win_rate = ((opp2_stats[0]/opp2_stats[2])*10)
         except:
-            opp1_win_rate = 0
-            opp2_win_rate = 0
+            opp1_win_rate = df['opp1_overall_wl_rolling'][i]
+            opp2_win_rate = df['opp2_overall_wl_rolling'][i]
         df.loc[i, 'opp1_vs_opp2_win_rate'] = int(opp1_win_rate)
         df.loc[i, 'opp2_vs_opp1_win_rate'] = int(opp2_win_rate)
     if print_status: print("Opps Win Rate Applied.")
@@ -688,3 +690,6 @@ predict_set1_winner(norm, set1_winner_clf, accuracy)
 
 # PERFORMACE INCREASE
 # Don't Need to find both opponinent stats eveytime can just calculate it off the first oppenent.
+
+# TO ADD IM
+# Do percentage of vs taller & Shorter players & smaller or heavier players
