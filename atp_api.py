@@ -296,9 +296,11 @@ def get_prediction_daily_schedule():
     html = result.read()
     parser = etree.HTMLParser()
     tree = etree.parse(io.BytesIO(html), parser)
-    daily_schedule_link = strip_html(tree.xpath("//div[@class='module-header']/div[1]/div[4]/span/a/@href")[0])
-    # daily_schedule_link = '/en/scores/current/brisbane/339/daily-schedule'
-    matches = get_prediction_matches(daily_schedule_link)
+    tournament_links = [strip_html(tree.xpath("//div[@class='module-header']/div[1]/div[4]/span/a/@href")[0])]
+    tournament_links.extend(tree.xpath("//div[@class='last-events-played-slider royalSlider']/a/@href")) #Next / Previous Link
+    daily_schedule_links = [tournament_link.replace('/results', '/daily-schedule') for tournament_link in tournament_links]
+    matches = []
+    [matches.extend(get_prediction_matches(daily_schedule_link)) for daily_schedule_link in daily_schedule_links]
     return(matches)
 
 def hist_to_csv(tournament_data):
