@@ -18,10 +18,10 @@ def clean_age_weight_height(row):
     clean_row = clean_row.replace(' ','')
     return(clean_row)
 
-def normalization_age_weight_height(df):
+def normalization_age(df):
     normalization = {}
-    distribution_lists = {'age': [], 'weight': [], 'height': []}
-    distribution_columns = ['opp1_age', 'opp1_weight', 'opp1_height', 'opp2_age', 'opp2_weight', 'opp2_height']
+    distribution_lists = {'age': []} #, 'weight': [], 'height': []
+    distribution_columns = ['opp1_age', 'opp2_age'] #'opp1_weight', 'opp1_height', 'opp2_weight', 'opp2_height'
     for column in distribution_columns:
         players_id = []
         i = 0
@@ -37,6 +37,63 @@ def normalization_age_weight_height(df):
     for column in distribution_columns:
         normalization[column] = [np.mean(distribution_lists[column.replace('opp1_', '').replace('opp2_', '')]), np.std(distribution_lists[column.replace('opp1_', '').replace('opp2_', '')])]
     print("Age Weight Hieght Normalized.")
+    return(normalization)
+
+def normalization_vs_weight_height(df):
+    players_dict = get_player_dict(df)
+    for player in players_dict:
+        players_dict[player] = {'taller': [0, 0 ,0], 'shorter': [0, 0, 0], 'lighter': [0, 0, 0], 'heavier': [0, 0, 0]}
+    for i in range(len(df.index)):
+        opp1 = df['opp1'][i]
+        opp1_weight = clean_age_weight_height(df['opp1_weight'][i])
+        opp1_height = clean_age_weight_height(df['opp1_height'][i])
+        opp2 = df['opp2'][i]
+        opp2_weight = clean_age_weight_height(df['opp2_weight'][i])
+        opp2_height = clean_age_weight_height(df['opp2_height'][i])
+        if df['winner'][i] == 1:
+            if opp1_weight >= opp2_weight:
+                players_dict[opp1]['lighter'][0] += 1
+                players_dict[opp1]['lighter'][2] += 1
+                players_dict[opp2]['heavier'][1] += 1
+                players_dict[opp2]['heavier'][2] += 1
+            else:
+                players_dict[opp1]['heavier'][0] += 1
+                players_dict[opp1]['heavier'][2] += 1
+                players_dict[opp2]['lighter'][1] += 1
+                players_dict[opp2]['lighter'][2] += 1
+            if opp1_height >= opp2_height:
+                players_dict[opp1]['shorter'][0] += 1
+                players_dict[opp1]['shorter'][2] += 1
+                players_dict[opp2]['taller'][1] += 1
+                players_dict[opp2]['taller'][2] += 1
+            else:
+                players_dict[opp1]['taller'][0] += 1
+                players_dict[opp1]['taller'][2] += 1
+                players_dict[opp2]['shorter'][1] += 1
+                players_dict[opp2]['shorter'][2] += 1
+        else:
+            if opp2_weight >= opp1_weight:
+                players_dict[opp2]['lighter'][0] += 1
+                players_dict[opp2]['lighter'][2] += 1
+                players_dict[opp1]['heavier'][1] += 1
+                players_dict[opp1]['heavier'][2] += 1
+            else:
+                players_dict[opp2]['heavier'][0] += 1
+                players_dict[opp2]['heavier'][2] += 1
+                players_dict[opp1]['lighter'][1] += 1
+                players_dict[opp1]['lighter'][2] += 1
+            if opp2_height >= opp1_height:
+                players_dict[opp2]['shorter'][0] += 1
+                players_dict[opp2]['shorter'][2] += 1
+                players_dict[opp1]['taller'][1] += 1
+                players_dict[opp1]['taller'][2] += 1
+            else:
+                players_dict[opp2]['taller'][0] += 1
+                players_dict[opp2]['taller'][2] += 1
+                players_dict[opp1]['shorter'][1] += 1
+                players_dict[opp1]['shorter'][2] += 1
+    normalization = {'vs_weight_height': players_dict}
+    print("VS Weight Height Normalized.")
     return(normalization)
 
 def get_player_dict(df):
@@ -282,9 +339,9 @@ def normalization_after_losing_first_set(df):
     return(normalization)
 
 def normalization(df):
-    normalizations = {**normalization_overall_winloss(df), **normalization_age_weight_height(df), **normalization_title_location(df), **normalization_opps(df), **normalization_opp_set_scores(df),
-                      **normalization_surface_and_surface_type(df), **normalization_hand(df), **normalization_back_hand(df), **normalization_sets(df), **normalization_set_avg(df),
-                      **normalization_after_winning_first_set(df), **normalization_after_losing_first_set(df)}
+    normalizations = {**normalization_overall_winloss(df), **normalization_age(df), **normalization_vs_weight_height(df), **normalization_title_location(df),
+                      **normalization_opps(df), **normalization_opp_set_scores(df), **normalization_surface_and_surface_type(df), **normalization_hand(df),
+                      **normalization_back_hand(df), **normalization_sets(df), **normalization_set_avg(df), **normalization_after_winning_first_set(df), **normalization_after_losing_first_set(df)}
     print("Normalization Complete.\n\n ----- APPLYING TO DATA -----\n")
     return(normalizations)
 
@@ -455,8 +512,8 @@ def apply_first_set_winner(df, print_status):
             df.loc[i, 'first_set_winner'] = 2
     if print_status: print("First Set Winner Applied.")
 
-def apply_age_weight_height(df, normalization, print_status):
-    for column in ['opp1_age', 'opp1_weight', 'opp1_height', 'opp2_age', 'opp2_weight', 'opp2_height']:
+def apply_age(df, normalization, print_status):
+    for column in ['opp1_age', 'opp2_age']: #'opp1_weight', 'opp1_height', 'opp2_weight', 'opp2_height'
         i = 0
         for row in df[column]:
             clean_row = clean_age_weight_height(row)
@@ -464,12 +521,44 @@ def apply_age_weight_height(df, normalization, print_status):
                 clean_row = normalization[column][0]
             else:
                 clean_row = int(clean_row.split('.')[0])
-            column_norm = math.ceil(abs((clean_row - normalization[column][0])/normalization[column][1]))
+            column_norm = math.ceil(abs((clean_row - normalization[column][0])/(normalization[column][1]/2)))
             if column_norm > 10:
                 column_norm = 10
             df.loc[i, column] = abs(column_norm-11)
             i += 1
-    if print_status: print("Age Weight Height Applied.")
+    if print_status: print("Age Applied.")
+
+def apply_vs_weight_height(df, normalization, print_status):
+    for i in range(len(df.index)):
+        opp1 = df['opp1'][i]
+        opp1_norm = normalization['vs_weight_height'][opp1]
+        opp2 = df['opp2'][i]
+        opp2_norm = normalization['vs_weight_height'][opp2]
+        try:
+            if clean_age_weight_height(df['opp1_weight'][i]) >= clean_age_weight_height(df['opp2_weight'][i]):
+                opp1_weight_rank = round((opp1_norm['heavier'][0]/opp1_norm['heavier'][2])*10)
+                opp2_weight_rank = round((opp2_norm['lighter'][0]/opp2_norm['lighter'][2])*10)
+            else:
+                opp1_weight_rank = round((opp1_norm['lighter'][0]/opp1_norm['lighter'][2])*10)
+                opp2_weight_rank = round((opp2_norm['heavier'][0]/opp2_norm['heavier'][2])*10)
+        except:
+            opp1_weight_rank = df['opp1_overall_wl_rolling'][i]
+            opp2_weight_rank = df['opp2_overall_wl_rolling'][i]
+        df.loc[i, 'opp1_vs_weight'] = opp1_weight_rank
+        df.loc[i, 'opp2_vs_weight'] = opp2_weight_rank
+        try:
+            if clean_age_weight_height(df['opp1_height'][i]) >= clean_age_weight_height(df['opp2_height'][i]):
+                opp1_height_rank = round((opp1_norm['taller'][0]/opp1_norm['taller'][2])*10)
+                opp2_height_rank = round((opp2_norm['shorter'][0]/opp2_norm['shorter'][2])*10)
+            else:
+                opp1_height_rank = round((opp1_norm['shorter'][0]/opp1_norm['shorter'][2])*10)
+                opp2_height_rank = round((opp2_norm['taller'][0]/opp2_norm['taller'][2])*10)
+        except:
+            opp1_height_rank = df['opp1_overall_wl_rolling'][i]
+            opp2_height_rank = df['opp2_overall_wl_rolling'][i]
+        df.loc[i, 'opp1_vs_height'] = opp1_height_rank
+        df.loc[i, 'opp2_vs_height'] = opp2_height_rank
+    if print_status: print("VS Weight & Height Applied.")
 
 def apply_year_pro(df, print_status):
     for column in ['opp1_year_pro', 'opp2_year_pro']:
@@ -570,13 +659,14 @@ def apply_normalization(df, normalization, print_status):
     apply_opps(df, normalization, print_status)
     apply_sets(df, normalization, print_status)
     apply_first_set_winner(df, print_status)
-    apply_age_weight_height(df, normalization, print_status)
+    apply_age(df, normalization, print_status)
+    apply_vs_weight_height(df, normalization, print_status)
     apply_year_pro(df, print_status)
     apply_hand(df, normalization, print_status)
     apply_backhand(df, normalization, print_status)
     apply_after_winning_first_set(df, normalization, print_status)
     apply_after_losing_first_set(df, normalization, print_status)
-    df.drop(['date', 'location', 'surface', 'surfaceType', 'opp1_url', 'opp2_url', 'opp1_hand', 'opp2_hand',
+    df.drop(['date', 'location', 'surface', 'surfaceType', 'opp1_url', 'opp2_url', 'opp1_weight', 'opp1_height', 'opp2_weight', 'opp2_height', 'opp1_hand', 'opp2_hand',
             'opp1_set1', 'opp2_set1', 'opp1_set2', 'opp2_set2', 'opp1_set3', 'opp2_set3', 'opp1_set4', 'opp2_set4', 'opp1_set5', 'opp2_set5',
             'opp1_overall_ytd', 'opp1_grandslams_ytd', 'opp1_atpworld_ytd', 'opp1_tiebreaks_ytd', 'opp1_vs_top_10_ytd', 'opp1_finals_ytd',
             'opp1_deciding_set_ytd', 'opp1_fifth_set_record_ytd', 'opp1_after_winning_first_set_ytd', 'opp1_after_losing_first_set_ytd',
@@ -690,6 +780,3 @@ predict_set1_winner(norm, set1_winner_clf, accuracy)
 
 # PERFORMACE INCREASE
 # Don't Need to find both opponinent stats eveytime can just calculate it off the first oppenent.
-
-# TO ADD IM
-# Do percentage of vs taller & Shorter players & smaller or heavier players
