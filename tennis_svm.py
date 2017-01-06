@@ -4,6 +4,7 @@ import pandas as pd
 import math
 import datetime
 from dateutil.relativedelta import relativedelta
+import os.path
 
 def date_in_rolling_period(date):
     date = datetime.datetime.strptime(date, '%Y.%m.%d')
@@ -666,7 +667,7 @@ def apply_normalization(df, normalization, print_status):
     apply_backhand(df, normalization, print_status)
     apply_after_winning_first_set(df, normalization, print_status)
     apply_after_losing_first_set(df, normalization, print_status)
-    df.drop(['date', 'location', 'surface', 'surfaceType', 'opp1_url', 'opp2_url', 'opp1_weight', 'opp1_height', 'opp2_weight', 'opp2_height', 'opp1_hand', 'opp2_hand',
+    df.drop(['location', 'surface', 'surfaceType', 'opp1_url', 'opp2_url', 'opp1_weight', 'opp1_height', 'opp2_weight', 'opp2_height', 'opp1_hand', 'opp2_hand',
             'opp1_set1', 'opp2_set1', 'opp1_set2', 'opp2_set2', 'opp1_set3', 'opp2_set3', 'opp1_set4', 'opp2_set4', 'opp1_set5', 'opp2_set5',
             'opp1_overall_ytd', 'opp1_grandslams_ytd', 'opp1_atpworld_ytd', 'opp1_tiebreaks_ytd', 'opp1_vs_top_10_ytd', 'opp1_finals_ytd',
             'opp1_deciding_set_ytd', 'opp1_fifth_set_record_ytd', 'opp1_after_winning_first_set_ytd', 'opp1_after_losing_first_set_ytd',
@@ -687,7 +688,7 @@ def apply_normalization(df, normalization, print_status):
     return(df)
 
 def train_winner(df):
-    X = np.array(df.drop(['winner', 'opp1', 'opp2', 'first_set_winner', 'title'], 1))
+    X = np.array(df.drop(['winner', 'opp1', 'opp2', 'first_set_winner', 'date', 'title'], 1))
     y = np.array(df['winner'])
     # X = preprocessing.scale(X)
 
@@ -701,11 +702,12 @@ def train_winner(df):
     return(clf, accuracy)
 
 def predict_winner(norm, clf, accuracy):
-    p_df = pd.read_csv('tennis_data_prediction.csv', encoding = 'iso-8859-1')
+    p_df = pd.read_csv('../tennis/tennis_data_prediction.csv', encoding = 'iso-8859-1')
     norm_p_df = apply_normalization(p_df, norm, False)
-    matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner', 'title'], 1))
+    matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner', 'date', 'title'], 1))
     opp1s = np.array(norm_p_df['opp1'])
     opp2s = np.array(norm_p_df['opp2'])
+    dates = np.array(norm_p_df['date'])
     titles = np.array(norm_p_df['title'])
     # matches = preprocessing.scale(matches)
 
@@ -717,8 +719,8 @@ def predict_winner(norm, clf, accuracy):
         prediction = clf.predict(row)
         confidence = clf.decision_function(row)
         probability = int(abs(clf.predict_proba(row)[0][prediction[0]-1])*100)
-        if probability >= 75:
-            winnerslist.append([opp1s[i], opp2s[i], eval('opp' + str(prediction[0]) +'s[i]'), probability, int(abs(confidence[0])*100)])
+        if probability >= 80:
+            winnerslist.append([dates[i], titles[i], opp1s[i], opp2s[i], eval('opp' + str(prediction[0]) +'s[i]'), probability, int(abs(confidence[0])*100)])
             winner_string = titles[i][:6] + " - " + opp1s[i] + " vs " + opp2s[i] + " - " + str(prediction[0]) + " - " + str(probability) + '% Prob - ' + str(int(abs(confidence[0])*100)) + ' Dist'
             try:
                 winner_string += (" - " + str(norm['opp'][opp1s[i]][opp2s[i]]) + " " + str(norm['opp_set_scores'][opp1s[i]][opp2s[i]]))
@@ -726,10 +728,10 @@ def predict_winner(norm, clf, accuracy):
                 winner_string += " - [0, 0, 0] [0, 0]"
             print(winner_string)
         i += 1
-    # print(winnerslist)
+    return(winnerslist)
 
 def train_set1_winner(df):
-    X = np.array(df.drop(['winner', 'opp1', 'opp2', 'first_set_winner', 'title'], 1))
+    X = np.array(df.drop(['winner', 'opp1', 'opp2', 'first_set_winner', 'date', 'title'], 1))
     y = np.array(df['first_set_winner'])
     # X = preprocessing.scale(X)
 
@@ -743,9 +745,9 @@ def train_set1_winner(df):
     return(clf, accuracy)
 
 def predict_set1_winner(norm, clf, accuracy):
-    p_df = pd.read_csv('tennis_data_prediction.csv', encoding = 'iso-8859-1')
+    p_df = pd.read_csv('../tennis/tennis_data_prediction.csv', encoding = 'iso-8859-1')
     norm_p_df = apply_normalization(p_df, norm, False)
-    matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner', 'title'], 1))
+    matches = np.array(norm_p_df.drop(['opp1', 'opp2', 'winner', 'first_set_winner', 'date', 'title'], 1))
     opp1s = np.array(norm_p_df['opp1'])
     opp2s = np.array(norm_p_df['opp2'])
     titles = np.array(norm_p_df['title'])
@@ -764,19 +766,35 @@ def predict_set1_winner(norm, clf, accuracy):
             + " vs " + str(int((norm['set'][opp2s[i]]['set1'][0]/norm['set'][opp2s[i]]['set1'][2])*100)) + "%(" + str(int(np.mean(norm['set_avg'][opp2s[i]]['set1']))) + ")")
         i += 1
 
+SVM_Version = 1.0
 rolling_monthly_period = 12
-df = pd.read_csv('tennis_data.csv', encoding = 'iso-8859-1')
-norm = normalization(df)
 
-#norm_df = apply_normalization(df, norm, True)
-#norm_df.copy().to_csv('normalized_df.csv', sep=',', index=False, encoding='utf-8')
-norm_df = pd.read_csv('normalized_df.csv', encoding='utf-8')
+def process(normalized_df, normalization_dict):
+    winner_clf, accuracy = train_winner(normalized_df)
+    winner_list = predict_winner(normalization_dict, winner_clf, accuracy)
 
-winner_clf, accuracy = train_winner(norm_df)
-predict_winner(norm, winner_clf, accuracy)
+    set1_winner_clf, accuracy = train_set1_winner(normalized_df)
+    predict_set1_winner(normalization_dict, set1_winner_clf, accuracy)
 
-set1_winner_clf, accuracy = train_set1_winner(norm_df)
-predict_set1_winner(norm, set1_winner_clf, accuracy)
+    return(SVM_Version, winner_list)
 
-# PERFORMACE INCREASE
-# Don't Need to find both opponinent stats eveytime can just calculate it off the first oppenent.
+def check_files():
+    data_file_mod_date = datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/tennis_data.csv'))
+    norm_file_mod_date = datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/normalized_df.csv'))
+
+    if data_file_mod_date.date() != datetime.datetime.now().date(): ValueError("Data file not up to date.")
+
+    df = pd.read_csv('../tennis/tennis_data.csv', encoding = 'iso-8859-1')
+    normalization_dict = normalization(df)
+
+    if norm_file_mod_date > data_file_mod_date:
+        normalized_df = pd.read_csv('../tennis/normalized_df.csv', encoding='utf-8')
+    else:
+        normalized_df = apply_normalization(df, normalization_dict, True)
+        normalized_df.copy().to_csv('../tennis/normalized_df.csv', sep=',', index=False, encoding='utf-8')
+
+    SVM_Version, winner_list = process(normalized_df, normalization_dict)
+    return(SVM_Version, winner_list)
+
+if __name__ == '__main__':
+    check_files()
