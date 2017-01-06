@@ -3,8 +3,9 @@ from sklearn import preprocessing, model_selection, neighbors, svm
 import pandas as pd
 import math
 import datetime
+import time
 from dateutil.relativedelta import relativedelta
-import os.path
+import os
 
 def date_in_rolling_period(date):
     date = datetime.datetime.strptime(date, '%Y.%m.%d')
@@ -340,10 +341,11 @@ def normalization_after_losing_first_set(df):
     return(normalization)
 
 def normalization(df):
+    print("\n ----- NORMALIZING DATA -----\n")
     normalizations = {**normalization_overall_winloss(df), **normalization_age(df), **normalization_vs_weight_height(df), **normalization_title_location(df),
                       **normalization_opps(df), **normalization_opp_set_scores(df), **normalization_surface_and_surface_type(df), **normalization_hand(df),
                       **normalization_back_hand(df), **normalization_sets(df), **normalization_set_avg(df), **normalization_after_winning_first_set(df), **normalization_after_losing_first_set(df)}
-    print("Normalization Complete.\n\n ----- APPLYING TO DATA -----\n")
+    print("Normalization Complete.")
     return(normalizations)
 
 def apply_winloss_columns(df, print_status):
@@ -649,6 +651,7 @@ def apply_after_losing_first_set(df, normalization, print_status):
     if print_status: print("After losing first Set Applied.")
 
 def apply_normalization(df, normalization, print_status):
+    print("\n ----- APPLYING TO DATA -----\n")
     apply_winloss_columns(df, print_status)
     apply_overall(df, normalization, print_status)
     apply_surface(df, normalization, print_status)
@@ -776,13 +779,15 @@ def process(normalized_df, normalization_dict):
     set1_winner_clf, accuracy = train_set1_winner(normalized_df)
     predict_set1_winner(normalization_dict, set1_winner_clf, accuracy)
 
-    return(SVM_Version, winner_list)
+    return(winner_list)
 
 def check_files():
     data_file_mod_date = datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/tennis_data.csv'))
     norm_file_mod_date = datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/normalized_df.csv'))
 
-    if data_file_mod_date.date() != datetime.datetime.now().date(): ValueError("Data file not up to date.")
+    if data_file_mod_date.date() != datetime.datetime.now().date():
+        os.system("python atp_api.py")
+        time.sleep(300)
 
     df = pd.read_csv('../tennis/tennis_data.csv', encoding = 'iso-8859-1')
     normalization_dict = normalization(df)
@@ -793,7 +798,7 @@ def check_files():
         normalized_df = apply_normalization(df, normalization_dict, True)
         normalized_df.copy().to_csv('../tennis/normalized_df.csv', sep=',', index=False, encoding='utf-8')
 
-    SVM_Version, winner_list = process(normalized_df, normalization_dict)
+    winner_list = process(normalized_df, normalization_dict)
     return(SVM_Version, winner_list)
 
 if __name__ == '__main__':

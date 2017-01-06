@@ -259,10 +259,11 @@ def get_prediction_tournament_details(tree):
 def process_prediction_matches(tree, date):
     tournament_details = get_prediction_tournament_details(tree)
     date_string = [str(date.year) + "." + str(date.month) + "." + str(date.day)]
-    opp1s = tree.xpath("//table[@class='day-table']/tbody[1]/tr/td[4]/a/text()")
-    opp2s = tree.xpath("//table[@class='day-table']/tbody[1]/tr/td[8]/div/a/text()")
+    opp1s = tree.xpath("//table[@class='day-table']/tbody[1]/tr/td[4]/a[1]/text()")
+    opp2s = tree.xpath("//table[@class='day-table']/tbody[1]/tr/td[8]/div/a[1]/text()")
+    counts = tree.xpath("//table[@class='day-table']/tbody[1]/tr/td[4]")
     vs = []
-    [vs.append(date_string + tournament_details + [opp1s[i], '', opp2s[i], '']) for i in range(len(opp1s))]
+    [vs.append(date_string + tournament_details + [opp1s[i], '', opp2s[i], '']) for i in range(len(opp1s)) if len(counts[i].findall('a')) == 1]
     return(vs)
 
 def get_prediction_matches_days(tree, link):
