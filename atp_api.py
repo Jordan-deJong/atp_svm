@@ -37,13 +37,46 @@ def process_match_data(tree):
     loser = tree.xpath("//table[@class='day-table']/tbody/tr/td[7]/a/text()")
     loser_link = tree.xpath("//table[@class='day-table']/tbody/tr/td[7]/a/@href")
     scores = tree.xpath("//table[@class='day-table']/tbody/tr/td[8]/a")
+    match_link = tree.xpath("//table[@class='day-table']/tbody/tr/td[9]/a/@href")
     matches = []
     for i in range(len(winner)):
         try:
-            matches.append([winner[i], winner_link[i], loser[i], loser_link[i], etree.tostring(scores[i])])
+            matches.append([winner[i], winner_link[i], loser[i], loser_link[i], etree.tostring(scores[i]), match_link[i]])
         except:
             pass
     return(matches)
+
+def match_stats_player_table_location(tree, player_name):
+    first_name = strip_html(tree.xpath("//div[@class='player-left-name']/a/span[1]/text()")[0])
+    last_name = strip_html(tree.xpath("//div[@class='player-left-name']/a/span[2]/text()")[0])
+    full_name = first_name + last_name
+    if full_name.replace(' ', '') == player_name.replace(' ', ''):
+        i = "1"
+    else:
+        i = "5"
+    return(i)
+
+def process_match_stat_data(tree, player_name):
+    i = match_stats_player_table_location(tree, player_name)
+    # for e in tree.findall('.//script[@id="matchStatsData"]'):
+    #     print(e)
+    # print(len(tree.xpath("//script[@id='matchStatsData']")))
+    aces = strip_html(tree.xpath("//table[@class='match-stats-table']/tbody[1]/tr[2]/td[" + i + "]/span[1]/text()")[0])
+    double_faults = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[3]/td[" + i + "]/span/text()")[0])
+    first_serve_perentage = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[4]/td[" + i + "]/span/text()")[0])
+    first_serve_points_won = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[5]/td[" + i + "]/span/text()")[0])
+    second_serve_points_won = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[6]/td[" + i + "]/span/text()")[0])
+    break_points_saved = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[7]/td[" + i + "]/span/text()")[0])
+    service_games_played = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[8]/td[" + i + "]/span/text()")[0])
+    first_serve_return_points_won = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[10]/td[" + i + "]/span/text()")[0])
+    second_serve_return_points_won = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[11]/td[" + i + "]/span/text()")[0])
+    break_points_converted = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[12]/td[" + i + "]/span/text()")[0])
+    return_games_played = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[13]/td[" + i + "]/span/text()")[0])
+    total_service_points_won = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[15]/td[" + i + "]/span/text()")[0])
+    total_return_points_won = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[16]/td[" + i + "]/span/text()")[0])
+    total_points_won = strip_html(tree.xpath("//table[@class='match-stats-table']/tr[17]/td[" + i + "]/span/text()")[0])
+    return([aces, double_faults, first_serve_perentage, first_serve_points_won, break_points_saved, service_games_played, first_serve_return_points_won,
+            second_serve_return_points_won, break_points_converted, return_games_played, total_service_points_won, total_return_points_won, total_points_won])
 
 def get_set_scores(scores):
     score = re.sub(r"<sup>\d+</sup>", "", bytes.decode(scores))
@@ -63,6 +96,16 @@ def get_set_scores(scores):
     score_list += ['0'] * (10 - len(score_list))
     return(score_list)
 
+def get_match_stats(link, opp1_name, opp2_name):
+    url = home_url + link
+    result = urllib.request.urlopen(url)
+    html = result.read()
+    parser = etree.HTMLParser()
+    tree = etree.parse(io.BytesIO(html), parser)
+    opp1_match_stats = process_match_stat_data(tree, opp1_name)
+    opp2_match_stats = process_match_stat_data(tree, opp2_name)
+    return(opp1_match_stats + opp2_match_stats)
+
 def randomize_players(tournament, match):
     random = randint(1,2)
     if random == 1:
@@ -79,7 +122,11 @@ def randomize_players(tournament, match):
         opp2_url = match[1]
         l1, w1, l2, w2, l3, w3, l4, w4, l5, w5 = get_set_scores(match[4])
         winner = 2
-    return([tournament[0], tournament[1], tournament[2], tournament[3], tournament[4], tournament[5], opp1, opp1_url, opp2, opp2_url, winner, w1, l1, w2, l2, w3, l3, w4, l4, w5, l5])
+    # try:
+    #     match_stats = get_match_stats(match[5], opp1, opp2)
+    # except:
+    match_stats = (['0'] * 26)
+    return(tournament[:6] + [opp1, opp1_url, opp2, opp2_url, winner, w1, l1, w2, l2, w3, l3, w4, l4, w5, l5] + match_stats)
 
 def get_player_urls(tournament_data):
     player_urls = [[],[]]
@@ -165,9 +212,11 @@ def threaded_get_tournament(tournament):
             print(tournament[0] + " " + tournament[1] + " process complete")
             attempts = 3
             return(match_data)
-        except:
+        except Exception as e:
             attempts += 1
-            print(tournament[0] + " " + tournament[1] +" process failed")
+            print(tournament[0] + " " + tournament[1] +" process failed  -" + str(e))
+            time.sleep(5)
+            if attempts == 3: return([])
 
 def get_tournament_data(year_data):
     tournament_data = []
@@ -291,6 +340,15 @@ def get_prediction_matches(link):
     matches = get_prediction_matches_days(tree, link)
     return(matches)
 
+def multi_tournament_links(link):
+    url = home_url + link
+    result = urllib.request.urlopen(url)
+    html = result.read()
+    parser = etree.HTMLParser()
+    tree = etree.parse(io.BytesIO(html), parser)
+    tournament_links = tree.xpath("//div[@class='last-events-played-slider royalSlider']/a/@href") #Next / Previous Link
+    return(tournament_links)
+
 def get_prediction_daily_schedule():
     url = home_url + '/en/scores/current/'
     result = urllib.request.urlopen(url)
@@ -299,32 +357,37 @@ def get_prediction_daily_schedule():
     tree = etree.parse(io.BytesIO(html), parser)
     tournament_links = [strip_html(tree.xpath("//div[@class='module-header']/div[1]/div[4]/span/a/@href")[0])]
     tournament_links.extend(tree.xpath("//div[@class='last-events-played-slider royalSlider']/a/@href")) #Next / Previous Link
-    daily_schedule_links = [tournament_link.replace('/results', '/daily-schedule') for tournament_link in tournament_links]
+    [tournament_links.extend(multi_tournament_links(link)) for link in list(tournament_links) for _ in range(5)]
+    daily_schedule_links = [link.replace('/results', '/daily-schedule') for link in set(tournament_links)]
     matches = []
-    [matches.extend(get_prediction_matches(daily_schedule_link)) for daily_schedule_link in daily_schedule_links]
+    [matches.extend(get_prediction_matches(daily_schedule_link)) for daily_schedule_link in set(daily_schedule_links)]
     return(matches)
 
 def hist_to_csv(tournament_data):
-    with open('tennis_data.csv', 'w', newline='') as csvfile:
+    with open('../tennis/tennis_data.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headings)
         for row in tournament_data:
             player_data_info, found_both = players(row, player_data)
             if found_both == 2:
                 writer.writerow(row + player_data_info)
+    print("Match History Complete.")
 
 def prediction_to_csv(prediction_matches):
-    with open('tennis_data_prediction.csv', 'w', newline='') as csvfile:
+    with open('../tennis/tennis_data_prediction.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headings)
         for row in prediction_matches:
             player_data_info, found_both = players(row, player_data)
             if found_both == 2:
-                writer.writerow(row + ['', '', '', '', '', '', '', '', '', '', ''] + player_data_info)
+                writer.writerow(row + ([''] * 37) + player_data_info)
+    print("Match Prediction Complete.")
 
 home_url = 'http://www.atpworldtour.com'
 years = [2016, 2017]
 headings = ['date', 'title', 'location', 'surface', 'surfaceType', 'dollar', 'opp1', 'opp1_url', 'opp2', 'opp2_url', 'winner', 'opp1_set1', 'opp2_set1', 'opp1_set2', 'opp2_set2', 'opp1_set3', 'opp2_set3', 'opp1_set4', 'opp2_set4', 'opp1_set5', 'opp2_set5',
+                 'opp1_aces_match', 'opp1_double_faults_match', 'opp1_first_serve_perentage_match', 'opp1_first_serve_points_won_match', 'opp1_break_points_saved_match', 'opp1_service_games_played_match', 'opp1_first_serve_return_points_won_match', 'opp1_second_serve_return_points_won_match', 'opp1_break_points_converted_match', 'opp1_return_games_played_match', 'opp1_total_service_points_won_match', 'opp1_total_return_points_won_match', 'opp1_total_points_won_match',
+                 'opp2_aces_match', 'opp2_double_faults_match', 'opp2_first_serve_perentage_match', 'opp2_first_serve_points_won_match', 'opp2_break_points_saved_match', 'opp2_service_games_played_match', 'opp2_first_serve_return_points_won_match', 'opp2_second_serve_return_points_won_match', 'opp2_break_points_converted_match', 'opp2_return_games_played_match', 'opp2_total_service_points_won_match', 'opp2_total_return_points_won_match', 'opp2_total_points_won_match',
                  'opp1_rank', 'opp1_age', 'opp1_year_pro', 'opp1_weight', 'opp1_height', 'opp1_hand',
                  'opp1_first_serve', 'opp1_first_serve_points_won', 'opp1_second_serve_points_won', 'opp1_break_points_saved', 'opp1_service_points_won', 'opp1_total_service_points_won', 'opp1_first_serve_return_points_won', 'opp1_second_serve_return_points_won', 'opp1_break_points_converted', 'opp1_return_games_won', 'opp1_return_points_won', 'opp1_total_points_won',
                  'opp1_overall_ytd', 'opp1_grandslams_ytd', 'opp1_atpworld_ytd', 'opp1_tiebreaks_ytd', 'opp1_vs_top_10_ytd', 'opp1_finals_ytd', 'opp1_deciding_set_ytd', 'opp1_fifth_set_record_ytd', 'opp1_clay_ytd', 'opp1_grass_ytd', 'opp1_hard_ytd', 'opp1_carpet_ytd', 'opp1_indoor_ytd', 'opp1_outdoor_ytd', 'opp1_after_winning_first_set_ytd', 'opp1_after_losing_first_set_ytd', 'opp1_vs_right_handers_ytd', 'opp1_vs_left_handers_ytd',

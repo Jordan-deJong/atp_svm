@@ -672,6 +672,8 @@ def apply_normalization(df, normalization, print_status):
     apply_after_losing_first_set(df, normalization, print_status)
     df.drop(['location', 'surface', 'surfaceType', 'opp1_url', 'opp2_url', 'opp1_weight', 'opp1_height', 'opp2_weight', 'opp2_height', 'opp1_hand', 'opp2_hand',
             'opp1_set1', 'opp2_set1', 'opp1_set2', 'opp2_set2', 'opp1_set3', 'opp2_set3', 'opp1_set4', 'opp2_set4', 'opp1_set5', 'opp2_set5',
+            'opp1_aces_match', 'opp1_double_faults_match', 'opp1_first_serve_perentage_match', 'opp1_first_serve_points_won_match', 'opp1_break_points_saved_match', 'opp1_service_games_played_match', 'opp1_first_serve_return_points_won_match', 'opp1_second_serve_return_points_won_match', 'opp1_break_points_converted_match', 'opp1_return_games_played_match', 'opp1_total_service_points_won_match', 'opp1_total_return_points_won_match', 'opp1_total_points_won_match',
+            'opp2_aces_match', 'opp2_double_faults_match', 'opp2_first_serve_perentage_match', 'opp2_first_serve_points_won_match', 'opp2_break_points_saved_match', 'opp2_service_games_played_match', 'opp2_first_serve_return_points_won_match', 'opp2_second_serve_return_points_won_match', 'opp2_break_points_converted_match', 'opp2_return_games_played_match', 'opp2_total_service_points_won_match', 'opp2_total_return_points_won_match', 'opp2_total_points_won_match',
             'opp1_overall_ytd', 'opp1_grandslams_ytd', 'opp1_atpworld_ytd', 'opp1_tiebreaks_ytd', 'opp1_vs_top_10_ytd', 'opp1_finals_ytd',
             'opp1_deciding_set_ytd', 'opp1_fifth_set_record_ytd', 'opp1_after_winning_first_set_ytd', 'opp1_after_losing_first_set_ytd',
             'opp1_clay_ytd', 'opp1_grass_ytd', 'opp1_hard_ytd', 'opp1_carpet_ytd', 'opp1_indoor_ytd', 'opp1_outdoor_ytd',
@@ -786,8 +788,8 @@ def check_files():
     norm_file_mod_date = datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/normalized_df.csv'))
 
     if data_file_mod_date.date() != datetime.datetime.now().date():
-        os.system("python atp_api.py")
-        time.sleep(300)
+        os.system("python ../tennis/atp_api.py")
+        time.sleep(360)
 
     df = pd.read_csv('../tennis/tennis_data.csv', encoding = 'iso-8859-1')
     normalization_dict = normalization(df)
