@@ -195,8 +195,9 @@ def threaded_get_tournament(tournament):
         except Exception as e:
             attempts += 1
             print(tournament[0] + " " + tournament[1] +" process failed  -" + str(e))
-            time.sleep(5)
             if attempts == 3: return([])
+            time.sleep(2)
+
 
 def get_tournament_data(year_data):
     tournament_data = []
@@ -218,24 +219,25 @@ def get_match_stats(link, opp1_name, opp2_name):
     return(opp1_match_stats + opp2_match_stats)
 
 def threaded_get_match(match):
-    match_data = []
-    attempts = 0
-    string = match[0] + " " + match[1][:5] + " " + match[6] + " vs " + match[8]
-    while attempts < 3:
-        try:
-            match_stats = get_match_stats(match[21], match[6], match[8])
-            attempts = 3
-            print(string + " process completed.")
-            return(match + match_stats)
-        except ValueError as e:
-            attempts = 3
-            print(string + " process failed  -" + str(e))
-            return(match + (['0'] * 28))
-        except Exception as e:
-            attempts += 1
-            print(string + " process failed  -" + str(e))
-            time.sleep(3)
-            if attempts == 3: return(match + (['0'] * 28))
+    return(match + (['0'] * 28))
+    # match_data = []
+    # attempts = 0
+    # string = match[0] + " " + match[1][:5] + " " + match[6] + " vs " + match[8]
+    # while attempts < 3:
+    #     try:
+    #         match_stats = get_match_stats(match[21], match[6], match[8])
+    #         attempts = 3
+    #         print(string + " process completed.")
+    #         return(match + match_stats)
+    #     except ValueError as e:
+    #         attempts = 3
+    #         print(string + " process failed  -" + str(e))
+    #         return(match + (['0'] * 28))
+    #     except Exception as e:
+    #         attempts += 1
+    #         print(string + " process failed  -" + str(e))
+    #         if attempts == 3: return(match + (['0'] * 28))
+    #         time.sleep(3)
 
 def get_match_data(tournament_data):
     match_data = []
@@ -245,9 +247,9 @@ def get_match_data(tournament_data):
     print("Matches Complete")
     return(match_data)
 
-def get_player_urls(tournament_data):
+def get_player_urls(match_data):
     player_urls = [[],[]]
-    for row in tournament_data:
+    for row in match_data:
         if row[6] not in player_urls[0]:
             player_urls[0].append(row[6])
             player_urls[1].append([row[6], row[7]])
@@ -370,17 +372,26 @@ def get_prediction_matches(link):
     matches = get_prediction_matches_days(tree, link)
     return(matches)
 
+def multi_tournament_links(link):
+     url = home_url + link
+     result = urllib.request.urlopen(url)
+     html = result.read()
+     parser = etree.HTMLParser()
+     tree = etree.parse(io.BytesIO(html), parser)
+     tournament_links = tree.xpath("//div[@class='last-events-played-slider royalSlider']/a/@href") #Next / Previous Link
+     return(tournament_links)
+
 def get_prediction_daily_schedule():
     url = home_url + '/en/scores/current/'
     result = urllib.request.urlopen(url)
     html = result.read()
     parser = etree.HTMLParser()
     tree = etree.parse(io.BytesIO(html), parser)
-    tournament_links = [strip_html(tree.xpath("//div[@class='module-header']/div[1]/div[4]/span/a/@href")[0])]
-    tournament_links.extend(tree.xpath("//div[@class='last-events-played-slider royalSlider']/a/@href")) #Next / Previous Link
-    daily_schedule_links = [tournament_link.replace('/results', '/daily-schedule') for tournament_link in tournament_links]
+    tournament_links = tree.xpath("//div[@class='last-events-played-slider royalSlider']/a/@href") #Next / Previous Link
+    [tournament_links.extend(multi_tournament_links(link)) for link in list(tournament_links) for _ in range(5)]
+    daily_schedule_links = [link.replace('/results', '/daily-schedule').replace('/live-scores', '/daily-schedule')  for link in set(tournament_links)]
     matches = []
-    [matches.extend(get_prediction_matches(daily_schedule_link)) for daily_schedule_link in daily_schedule_links]
+    [matches.extend(get_prediction_matches(daily_schedule_link)) for daily_schedule_link in set(daily_schedule_links)]
     return(matches)
 
 def hist_to_csv(match_data):
@@ -400,14 +411,14 @@ def prediction_to_csv(prediction_matches):
         for row in prediction_matches:
             player_data_info, found_both = players(row, player_data)
             if found_both == 2:
-                writer.writerow(row + ([''] * 38) + player_data_info)
+                writer.writerow(row + ([''] * 40) + player_data_info)
     print("Match Prediction Complete.")
 
 home_url = 'http://www.atpworldtour.com'
 years = [2016, 2017]
 headings = ['date', 'title', 'location', 'surface', 'surfaceType', 'dollar', 'opp1', 'opp1_url', 'opp2', 'opp2_url', 'winner', 'opp1_set1', 'opp2_set1', 'opp1_set2', 'opp2_set2', 'opp1_set3', 'opp2_set3', 'opp1_set4', 'opp2_set4', 'opp1_set5', 'opp2_set5', 'match_link',
-                 'opp1_aces_match', 'opp1_double_faults_match', 'opp1_first_serve_perentage_match', 'opp1_first_serve_points_won_match', 'opp1_second_serve_points_won', 'opp1_break_points_saved_match', 'opp1_service_games_played_match', 'opp1_first_serve_return_points_won_match', 'opp1_second_serve_return_points_won_match', 'opp1_break_points_converted_match', 'opp1_return_games_played_match', 'opp1_total_service_points_won_match', 'opp1_total_return_points_won_match', 'opp1_total_points_won_match',
-                 'opp2_aces_match', 'opp2_double_faults_match', 'opp2_first_serve_perentage_match', 'opp2_first_serve_points_won_match', 'opp2_second_serve_points_won', 'opp2_break_points_saved_match', 'opp2_service_games_played_match', 'opp2_first_serve_return_points_won_match', 'opp2_second_serve_return_points_won_match', 'opp2_break_points_converted_match', 'opp2_return_games_played_match', 'opp2_total_service_points_won_match', 'opp2_total_return_points_won_match', 'opp2_total_points_won_match',
+                 'opp1_aces_match', 'opp1_double_faults_match', 'opp1_first_serve_perentage_match', 'opp1_first_serve_points_won_match', 'opp1_second_serve_points_won_match', 'opp1_break_points_saved_match', 'opp1_service_games_played_match', 'opp1_first_serve_return_points_won_match', 'opp1_second_serve_return_points_won_match', 'opp1_break_points_converted_match', 'opp1_return_games_played_match', 'opp1_total_service_points_won_match', 'opp1_total_return_points_won_match', 'opp1_total_points_won_match',
+                 'opp2_aces_match', 'opp2_double_faults_match', 'opp2_first_serve_perentage_match', 'opp2_first_serve_points_won_match', 'opp2_second_serve_points_won_match', 'opp2_break_points_saved_match', 'opp2_service_games_played_match', 'opp2_first_serve_return_points_won_match', 'opp2_second_serve_return_points_won_match', 'opp2_break_points_converted_match', 'opp2_return_games_played_match', 'opp2_total_service_points_won_match', 'opp2_total_return_points_won_match', 'opp2_total_points_won_match',
                  'opp1_rank', 'opp1_age', 'opp1_year_pro', 'opp1_weight', 'opp1_height', 'opp1_hand',
                  'opp1_first_serve', 'opp1_first_serve_points_won', 'opp1_second_serve_points_won', 'opp1_break_points_saved', 'opp1_service_points_won', 'opp1_total_service_points_won', 'opp1_first_serve_return_points_won', 'opp1_second_serve_return_points_won', 'opp1_break_points_converted', 'opp1_return_games_won', 'opp1_return_points_won', 'opp1_total_points_won',
                  'opp1_overall_ytd', 'opp1_grandslams_ytd', 'opp1_atpworld_ytd', 'opp1_tiebreaks_ytd', 'opp1_vs_top_10_ytd', 'opp1_finals_ytd', 'opp1_deciding_set_ytd', 'opp1_fifth_set_record_ytd', 'opp1_clay_ytd', 'opp1_grass_ytd', 'opp1_hard_ytd', 'opp1_carpet_ytd', 'opp1_indoor_ytd', 'opp1_outdoor_ytd', 'opp1_after_winning_first_set_ytd', 'opp1_after_losing_first_set_ytd', 'opp1_vs_right_handers_ytd', 'opp1_vs_left_handers_ytd',
