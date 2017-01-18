@@ -43,7 +43,7 @@ def process_match_data(tree):
         try:
             matches.append([winner[i], winner_link[i], loser[i], loser_link[i], etree.tostring(scores[i]), match_link[i]])
         except:
-            pass
+            matches.append([winner[i], winner_link[i], loser[i], loser_link[i], etree.tostring(scores[i]), ""])
     return(matches)
 
 def match_stats_player_table_location(tree, player_name, list_string):

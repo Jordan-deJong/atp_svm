@@ -784,12 +784,12 @@ def process(normalized_df, normalization_dict):
     return(winner_list)
 
 def check_files():
+    if datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/tennis_data.csv')).date() != datetime.datetime.now().date():
+        os.system("python3 ../tennis/atp_api.py")
+        time.sleep(240)
+
     data_file_mod_date = datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/tennis_data.csv'))
     norm_file_mod_date = datetime.datetime.fromtimestamp(os.path.getmtime('../tennis/normalized_df.csv'))
-
-    if data_file_mod_date.date() != datetime.datetime.now().date():
-        os.system("python ../tennis/atp_api.py")
-        time.sleep(360)
 
     df = pd.read_csv('../tennis/tennis_data.csv', encoding = 'iso-8859-1')
     normalization_dict = normalization(df)
